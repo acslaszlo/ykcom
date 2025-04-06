@@ -134,3 +134,50 @@ docstring-code-line-length = "dynamic"
 
 [tool.mypy]
 strict = true
+
+[tool.tox]
+requires = ["tox"]
+env_list = ["3.13", "lint", "check_format", "mypy", "fixy"]
+
+[tool.tox.env_run_base]
+runner = "uv-venv-lock-runner"
+commands = [
+    ["pytest", "tests", { replace = "posargs", extend = true }],
+]
+
+[tool.tox.env.lint]
+runner = "uv-venv-runner"
+deps = [
+    "ruff",
+]
+commands = [
+    ["ruff", "check"],
+]
+
+[tool.tox.env.check_format]
+runner = "uv-venv-runner"
+deps = [
+    "ruff",
+]
+commands = [
+    ["ruff", "format", "--check"],
+]
+
+[tool.tox.env.mypy]
+runner = "uv-venv-runner"
+deps = [
+    "mypy",
+]
+commands = [
+    ["mypy", "src"],
+]
+
+[tool.tox.env.fixy]
+runner = "uv-venv-runner"
+deps = [
+    "ruff",
+]
+commands = [
+    ["ruff", "format"],
+    ["ruff", "check", "--fix"],
+]
