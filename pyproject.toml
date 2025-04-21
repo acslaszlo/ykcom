@@ -70,7 +70,6 @@ select = [
     "I",    # isort
     "ICN",  # flake8-import-conventions
     "E",    # pycodestyle
-    "EM",   # flake8-errmsg
     "F",    # Pyflakes
     "FA",   # flake8-future-annotations
     "FBT",  # flake8-boolean-trap
