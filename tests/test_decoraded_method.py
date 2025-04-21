@@ -1,13 +1,10 @@
 from unittest.mock import MagicMock, call
 
-import pytest
-
 from src.ykcom import ykcom
 from tests.packages_for_testing import p1
 
 
 class TestDecoratedMethod:
-    @pytest.mark.xfail(reason="not implemented", strict=True)
     @ykcom("tests.packages_for_testing.p1", "os")  # TODO multiple targets?
     def test_one_target_pos(self, mocked: MagicMock) -> None:
         p1.mock_me("none")
@@ -22,7 +19,6 @@ class TestDecoratedMethod:
         assert custom_name.os.mock_calls == [call.environ.__getitem__("none")]
         assert custom_name.mock_calls == [call.os.environ.__getitem__("none")]
 
-    @pytest.mark.xfail(reason="not implemented", strict=True)
     @ykcom("tests.packages_for_testing.p1", "os")  # TODO multiple targets?
     def test_positional_with_fixture(self, mocked: MagicMock, some_key: str) -> None:
         p1.mock_me(some_key)

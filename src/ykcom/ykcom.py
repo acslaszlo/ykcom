@@ -63,8 +63,10 @@ class ykcom:  # noqa: N801
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             if self._name:
                 kwargs.update({self._name: self._mock_data.mock})
+            elif self._is_likely_method(func):
+                args = (args[0], self._mock_data.mock, *args[1:])  # type: ignore[assignment]
             else:
-                args = [self._mock_data.mock, *args]  # type: ignore[assignment]
+                args = (self._mock_data.mock, *args)  # type: ignore[assignment]
 
             try:
                 self._start()
@@ -139,9 +141,17 @@ class ykcom:  # noqa: N801
     def _update_signature_with_positional_default(self, func: Callable[P, T]) -> None:
         params = list(inspect.signature(func).parameters.values())
 
-        func.__signature__ = inspect.signature(  # type: ignore[attr-defined]
-            func,
-        ).replace(parameters=params[1:] + [params[0].replace(default=self._mock_data.mock)])
+        if self._is_likely_method(func):
+            new_params = params[:1] + params[2:] + [params[1].replace(default=self._mock_data.mock)]
+        else:
+            new_params = params[1:] + [params[0].replace(default=self._mock_data.mock)]
+
+        func.__signature__ = inspect.signature(func).replace(parameters=new_params)  # type: ignore[attr-defined]
+
+    @classmethod
+    def _is_likely_method(cls, func: Callable[P, T]) -> bool:
+        # TODO implement a more robust check
+        return next(iter(inspect.signature(func).parameters.values())).name == "self"
 
 
 # TODO define overload to mock without base path
