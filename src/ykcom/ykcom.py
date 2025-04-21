@@ -9,7 +9,7 @@ from functools import wraps
 from typing import TYPE_CHECKING, ParamSpec, TypeVar
 from unittest.mock import MagicMock, patch
 
-from .errors import TargetAlreadyBoundError
+from .errors import NamedParameterNotFoundError, TargetAlreadyBoundError
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -163,7 +163,7 @@ class ykcom:  # noqa: N801
                 new_params.append(param)
 
         if new_with_default is None:
-            raise ValueError(f"'{self._name}' not found in the parameter list")
+            raise NamedParameterNotFoundError(f"'{self._name}' not found in the parameter list")
 
         new_params.append(new_with_default)
 

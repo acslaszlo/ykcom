@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, call
 import pytest
 
 from src.ykcom import ykcom
-from src.ykcom.errors import TargetAlreadyBoundError
+from src.ykcom.errors import NamedParameterNotFoundError, TargetAlreadyBoundError
 from tests.packages_for_testing import p1, p2
 
 
@@ -99,6 +99,15 @@ def test_standalone_function_named_parametrized_after_decorator(custom_name: Mag
     assert custom_name.mock_calls == [call.os.environ.__getitem__(key)]
 
 
+def test_named_instance_no_missing_name() -> None:
+    with pytest.raises(NamedParameterNotFoundError) as err:
+
+        @ykcom("tests.packages_for_testing.p1", "os", name="custom_name")
+        def test_inner() -> None: ...
+
+    assert str(err.value) == "'custom_name' not found in the parameter list"
+
+
 @ykcom("tests.packages_for_testing.p1", "os", name="custom_name")
 @ykcom("tests.packages_for_testing.p1", "sys", name="custom_name")
 def test_multiple_targets_for_the_same_name(custom_name: MagicMock) -> None:
@@ -166,9 +175,14 @@ def test_multiple_targets_from_different_packages_for_the_same_name(custom_name:
     ]
 
 
-# TODO
-# @ykcom("tests.packages_for_testing.p1", "os")
-# @ykcom("tests.packages_for_testing.p1", "os", name="custom_name")  <- should be an error
+def test_same_targe_for_positional_and_named_instance_error() -> None:
+    with pytest.raises(TargetAlreadyBoundError) as err:
+
+        @ykcom("tests.packages_for_testing.p1", "os")
+        @ykcom("tests.packages_for_testing.p1", "os", name="custom_name")
+        def test_same_referred_via_multiple_names(custom_name: MagicMock) -> None: ...
+
+    assert str(err.value) == "Target 'tests.packages_for_testing.p1.os' is already bound"
 
 
 # TODO

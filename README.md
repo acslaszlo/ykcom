@@ -88,8 +88,15 @@ def test_bad(custom_name: MagicMock) -> None:
 
 TODO Add use cases and examples
 
-The following use cases are not supported:
-* Registering the same target under multiple Ykcom name. The same `MagicMock`
+## Errors
+* `NamedParameterNotFoundError`: Registering a named Ykcom instance without a corresponding name in thefunction
+  parameters.
+
+  ```python
+  @ykcom("base_path", "os", name="name")
+  def test_bad() -> None: ...
+  ```
+* `TargetAlreadyBoundError`: Registering the same target under multiple Ykcom name. The same `MagicMock`
   instance cannot have multiple parents. The behavior here would be that only
   one of the `MagicMock` instanced would receive the mock calls - which might
   be unexpected.
@@ -98,7 +105,6 @@ The following use cases are not supported:
   @ykcom("base_path", "os", name="name_2")
   def test_bad(name_1: MagicMock, name_2: MagicMock) -> None: ...
   ```
-  This will raise a `TargetAlreadyBoundError` exception.
 
 ## TODOs/Ideas
 
