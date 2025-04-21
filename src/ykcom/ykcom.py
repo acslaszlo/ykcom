@@ -36,21 +36,22 @@ class MockData:
 @dataclass(frozen=True, kw_only=True, slots=True)
 class YkcomData:
     named: dict[str | None, MockData] = field(default_factory=dict)
-    targets: set[str] = field(default_factory=set)
+    targets: dict[str, str | None] = field(default_factory=dict)
 
-    def register_target(self, target: str) -> None:
+    def register_target(self, target: str, *, name: str | None) -> None:
         """Register the given target to Ykcom. Each target should only be registered once per Ykcom name.
 
         Args:
             target: The target to register.
+            name: The name of the Ykcom instance to register.
 
         Raises:
             TargetAlreadyBoundError: If the target is already bound.
         """
-        if target in self.targets:
+        if target in self.targets and self.targets[target] != name:
             raise TargetAlreadyBoundError(f"Target '{target}' is already bound")
 
-        self.targets.add(target)
+        self.targets[target] = name
 
 
 def _to_list(t: MockTarget) -> list[str]:
@@ -81,7 +82,7 @@ class ykcom:  # noqa: N801
             data.named[self._name] = self._mock_data
 
         for t in self._target:
-            data.register_target(t)
+            data.register_target(t, name=self._name)
 
         if self._name:
             self._update_signature_with_named_default(func)

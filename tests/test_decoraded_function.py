@@ -99,12 +99,38 @@ def test_standalone_function_named_parametrized_after_decorator(custom_name: Mag
     assert custom_name.mock_calls == [call.os.environ.__getitem__(key)]
 
 
+@ykcom("tests.packages_for_testing.p1", "os", name="custom_name")
+@ykcom("tests.packages_for_testing.p1", "sys", name="custom_name")
+def test_multiple_targets_for_the_same_name(custom_name: MagicMock) -> None:
+    p1.mock_me("none")
+
+    assert custom_name.os.mock_calls == [call.environ.__getitem__("none")]
+    assert custom_name.sys.mock_calls == [call.stdout.write("Some text\n")]
+    assert custom_name.mock_calls == [
+        call.sys.stdout.write("Some text\n"),
+        call.os.environ.__getitem__("none"),
+    ]
+
+
+@ykcom("tests.packages_for_testing.p1", "os", "sys", name="custom_name")
+@ykcom("tests.packages_for_testing.p1", "sys", name="custom_name")
+def test_target_assigned_twice_for_the_same_name(custom_name: MagicMock) -> None:
+    p1.mock_me("none")
+
+    assert custom_name.os.mock_calls == [call.environ.__getitem__("none")]
+    assert custom_name.sys.mock_calls == [call.stdout.write("Some text\n")]
+    assert custom_name.mock_calls == [
+        call.sys.stdout.write("Some text\n"),
+        call.os.environ.__getitem__("none"),
+    ]
+
+
 def test_same_target_must_not_belong_to_different_names() -> None:
     with pytest.raises(TargetAlreadyBoundError) as err:
-        # TODO binding for the same name with the same target should be OK
+
         @ykcom("tests.packages_for_testing.p1", "os", name="custom_name")
         @ykcom("tests.packages_for_testing.p1", "os", name="custom_name_2")
-        def test_same_refferred_via_multiple_names(custom_name: MagicMock, custom_name_2: MagicMock) -> None: ...
+        def test_same_referred_via_multiple_names(custom_name: MagicMock, custom_name_2: MagicMock) -> None: ...
 
     assert str(err.value) == "Target 'tests.packages_for_testing.p1.os' is already bound"
 
