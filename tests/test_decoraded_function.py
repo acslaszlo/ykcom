@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, call
 import pytest
 
 from src.ykcom import ykcom
+from src.ykcom.errors import TargetAlreadyBoundError
 from tests.packages_for_testing import p1
 
 
@@ -96,6 +97,16 @@ def test_standalone_function_named_parametrized_after_decorator(custom_name: Mag
 
     assert custom_name.os.mock_calls == [call.environ.__getitem__(key)]
     assert custom_name.mock_calls == [call.os.environ.__getitem__(key)]
+
+
+def test_same_target_must_not_belong_to_different_names() -> None:
+    with pytest.raises(TargetAlreadyBoundError) as err:
+        # TODO binding for the same name with the same target should be OK
+        @ykcom("tests.packages_for_testing.p1", "os", name="custom_name")
+        @ykcom("tests.packages_for_testing.p1", "os", name="custom_name_2")
+        def test_same_refferred_via_multiple_names(custom_name: MagicMock, custom_name_2: MagicMock) -> None: ...
+
+    assert str(err.value) == "Target 'tests.packages_for_testing.p1.os' is already bound"
 
 
 # TODO stacked decorators

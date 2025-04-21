@@ -9,6 +9,8 @@ from functools import wraps
 from typing import TYPE_CHECKING, ParamSpec, TypeVar
 from unittest.mock import MagicMock, patch
 
+from .errors import TargetAlreadyBoundError
+
 if TYPE_CHECKING:
     from types import TracebackType
 
@@ -31,6 +33,26 @@ class MockData:
     mock: MagicMock = field(default_factory=MagicMock)
 
 
+@dataclass(frozen=True, kw_only=True, slots=True)
+class YkcomData:
+    named: dict[str | None, MockData] = field(default_factory=dict)
+    targets: set[str] = field(default_factory=set)
+
+    def register_target(self, target: str) -> None:
+        """Register the given target to Ykcom. Each target should only be registered once per Ykcom name.
+
+        Args:
+            target: The target to register.
+
+        Raises:
+            TargetAlreadyBoundError: If the target is already bound.
+        """
+        if target in self.targets:
+            raise TargetAlreadyBoundError(f"Target '{target}' is already bound")
+
+        self.targets.add(target)
+
+
 def _to_list(t: MockTarget) -> list[str]:
     """Convert the given mock target to a list of strings."""
     return [t] if isinstance(t, str) else list(t)
@@ -38,23 +60,30 @@ def _to_list(t: MockTarget) -> list[str]:
 
 class ykcom:  # noqa: N801
     def __init__(self, base_path: str, target: MockTarget, *args: MockTarget, name: str | None = None) -> None:
-        self._base_path = base_path
-        self._target = target
-        self._args = args
+        self._target = _to_list(target)
         self._name = name
         self._patchers: list[Patcher] = []
         self._mock_data = MockData()
 
+        for arg in args:
+            self._target.extend(_to_list(arg))
+
+        self._target = [t if "." in t else f"{base_path}.{t}" for t in self._target]
+
     def __call__(self, func: Callable[P, T]) -> Callable[P, T]:
-        if not hasattr(func, "_ykcom"):
-            func._ykcom = {}  # type: ignore[attr-defined]
+        data = getattr(func, "_ykcom", None)
+        if not data:
+            data = func._ykcom = YkcomData()  # type: ignore[attr-defined]
+
+        if other := data.named.get(self._name):
+            self._mock_data = other
+        else:
+            data.named[self._name] = self._mock_data
+
+        for t in self._target:
+            data.register_target(t)
 
         if self._name:
-            if other := func._ykcom.get(self._name):  # type: ignore[attr-defined]
-                self._mock_data = other
-            else:
-                func._ykcom[self._name] = self._mock_data  # type: ignore[attr-defined]
-
             self._update_signature_with_named_default(func)
         else:
             self._update_signature_with_positional_default(func)
@@ -73,6 +102,9 @@ class ykcom:  # noqa: N801
                 return func(*args, **kwargs)
             finally:
                 self._stop()
+                func._ykcom = None  # type: ignore[attr-defined]
+
+        wrapper._ykcom = data  # type: ignore[attr-defined]
 
         # TODO test for standalone function
         # TODO test for multiple decorators
@@ -95,17 +127,11 @@ class ykcom:  # noqa: N801
         self._stop()
 
     def _start(self) -> None:
-        target = _to_list(self._target)
-
-        for arg in self._args:
-            target.extend(_to_list(arg))
-
-        for t in target:
-            to_patch = t if "." in t else f"{self._base_path}.{t}"
-            name = to_patch.split(".")[-1]
+        for t in self._target:
+            name = t.split(".")[-1]
             # TODO check for duplicated names
 
-            self._patchers.append(patch(to_patch))
+            self._patchers.append(patch(t))
             self._mock_data.specs.add(name)
             self._mock_data.mock.mock_add_spec(list(self._mock_data.specs), spec_set=True)
 
