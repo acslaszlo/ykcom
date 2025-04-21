@@ -4,7 +4,7 @@ import pytest
 
 from src.ykcom import ykcom
 from src.ykcom.errors import TargetAlreadyBoundError
-from tests.packages_for_testing import p1
+from tests.packages_for_testing import p1, p2
 
 
 @ykcom("tests.packages_for_testing.p1", "os")
@@ -148,9 +148,22 @@ def test_target_assigned_twice_positional(pos: MagicMock) -> None:
     ]
 
 
-# TODO
-# @ykcom("tests.packages_for_testing.p1", "os", name="custom_name")
-# @ykcom("tests.packages_for_testing.p2", "sys", name="custom_name")  # different base path
+@ykcom("tests.packages_for_testing.p1", "os", name="custom_name")
+@ykcom("tests.packages_for_testing.p2", "sys", name="custom_name")  # different base path
+def test_multiple_targets_from_different_packages_for_the_same_name(custom_name: MagicMock) -> None:
+    p1.mock_me("none")
+    p2.mockery()
+
+    assert custom_name.os.mock_calls == [call.environ.__getitem__("none")]
+    assert custom_name.sys.mock_calls == [
+        call.stdout.write("Something else\n"),
+        call.stdout.flush(),
+    ]
+    assert custom_name.mock_calls == [
+        call.os.environ.__getitem__("none"),
+        call.sys.stdout.write("Something else\n"),
+        call.sys.stdout.flush(),
+    ]
 
 
 # TODO
