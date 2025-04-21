@@ -1,5 +1,7 @@
 # Ykcom
 
+Your friendly mocker.
+
 ![Ykcom](ykcom.jpg)
 
 ## Why

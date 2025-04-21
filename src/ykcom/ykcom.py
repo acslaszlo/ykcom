@@ -5,7 +5,7 @@ from __future__ import annotations
 import inspect
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from functools import partial, wraps
+from functools import wraps
 from typing import TYPE_CHECKING, ParamSpec, TypeVar
 from unittest.mock import MagicMock, patch
 
@@ -55,34 +55,20 @@ class ykcom:  # noqa: N801
             else:
                 func._ykcom[self._name] = self._mock_data  # type: ignore[attr-defined]
 
-            new_params = []
-            new_with_default = None
-            for name, param in inspect.signature(func).parameters.items():
-                if name == self._name:
-                    new_with_default = param.replace(default=self._mock_data.mock)
-                else:
-                    new_params.append(param)
-
-            if new_with_default is None:
-                raise ValueError(f"'{self._name}' not found in the parameter list")
-
-            new_params.append(new_with_default)
-
-            func.__signature__ = inspect.signature(func).replace(parameters=new_params)  # type: ignore[attr-defined]
-            new_func = func  # TODO remove
+            self._update_signature_with_named_default(func)
         else:
-            new_func = partial(func, self._mock_data.mock)
+            self._update_signature_with_positional_default(func)
 
-        new_func._ykcom = func._ykcom  # type: ignore[attr-defined]
-
-        @wraps(new_func)
+        @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             if self._name:
                 kwargs.update({self._name: self._mock_data.mock})
+            else:
+                args = [self._mock_data.mock, *args]  # type: ignore[assignment]
 
             try:
                 self._start()
-                return new_func(*args, **kwargs)
+                return func(*args, **kwargs)
             finally:
                 self._stop()
 
@@ -133,6 +119,29 @@ class ykcom:  # noqa: N801
         self._mock_data.mock.reset_mock()
         for name in self._mock_data.specs:
             getattr(self._mock_data.mock, name).reset_mock()
+
+    def _update_signature_with_named_default(self, func: Callable[P, T]) -> None:
+        new_params = []
+        new_with_default = None
+        for name, param in inspect.signature(func).parameters.items():
+            if name == self._name:
+                new_with_default = param.replace(default=self._mock_data.mock)
+            else:
+                new_params.append(param)
+
+        if new_with_default is None:
+            raise ValueError(f"'{self._name}' not found in the parameter list")
+
+        new_params.append(new_with_default)
+
+        func.__signature__ = inspect.signature(func).replace(parameters=new_params)  # type: ignore[attr-defined]
+
+    def _update_signature_with_positional_default(self, func: Callable[P, T]) -> None:
+        params = list(inspect.signature(func).parameters.values())
+
+        func.__signature__ = inspect.signature(  # type: ignore[attr-defined]
+            func,
+        ).replace(parameters=params[1:] + [params[0].replace(default=self._mock_data.mock)])
 
 
 # TODO define overload to mock without base path

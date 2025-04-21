@@ -65,16 +65,15 @@ def test_standalone_function_pos_parametrized_before_decorator(mocked: MagicMock
     assert mocked.mock_calls == [call.os.environ.__getitem__(key)]
 
 
-# FIXME
-# @ykcom("tests.packages_for_testing.p1", "os")
-# @pytest.mark.parametrize("param", [1, 2])
-# def test_standalone_function_pos_parametrized_after_decorator(mocked: MagicMock, param: int) -> None:
-#     key = f"none-{param}"
-#
-#     p1.mock_me(key)
-#
-#     assert mocked.os.mock_calls == [call.environ.__getitem__(key)]
-#     assert mocked.mock_calls == [call.os.environ.__getitem__(key)]
+@ykcom("tests.packages_for_testing.p1", "os")
+@pytest.mark.parametrize("param", [1, 2])
+def test_standalone_function_pos_parametrized_after_decorator(mocked: MagicMock, param: int) -> None:
+    key = f"none-{param}"
+
+    p1.mock_me(key)
+
+    assert mocked.os.mock_calls == [call.environ.__getitem__(key)]
+    assert mocked.mock_calls == [call.os.environ.__getitem__(key)]
 
 
 @pytest.mark.parametrize("param", [1, 2])
