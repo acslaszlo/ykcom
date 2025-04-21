@@ -135,4 +135,34 @@ def test_same_target_must_not_belong_to_different_names() -> None:
     assert str(err.value) == "Target 'tests.packages_for_testing.p1.os' is already bound"
 
 
-# TODO stacked decorators
+@ykcom("tests.packages_for_testing.p1", "os", "sys")
+@ykcom("tests.packages_for_testing.p1", "sys")
+def test_target_assigned_twice_positional(pos: MagicMock) -> None:
+    p1.mock_me("none")
+
+    assert pos.os.mock_calls == [call.environ.__getitem__("none")]
+    assert pos.sys.mock_calls == [call.stdout.write("Some text\n")]
+    assert pos.mock_calls == [
+        call.sys.stdout.write("Some text\n"),
+        call.os.environ.__getitem__("none"),
+    ]
+
+
+# TODO
+# @ykcom("tests.packages_for_testing.p1", "os", name="custom_name")
+# @ykcom("tests.packages_for_testing.p2", "sys", name="custom_name")  # different base path
+
+
+# TODO
+# @ykcom("tests.packages_for_testing.p1", "os")
+# @ykcom("tests.packages_for_testing.p1", "os", name="custom_name")  <- should be an error
+
+
+# TODO
+# @ykcom("tests.packages_for_testing.p1", "os", "sys", name="custom_name")
+# @ykcom("tests.packages_for_testing.p2", "sys", name="custom_name")  <- should be error
+
+
+# TODO
+# @ykcom("tests.packages_for_testing.p1", "os", "sys", name="custom_name")
+# @ykcom("tests.packages_for_testing.p2", {"target": "sys", "name": "sys2"}, name="custom_name")

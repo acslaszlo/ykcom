@@ -78,8 +78,10 @@ class ykcom:  # noqa: N801
 
         if other := data.named.get(self._name):
             self._mock_data = other
+            mock_reused = True
         else:
             data.named[self._name] = self._mock_data
+            mock_reused = False
 
         for t in self._target:
             data.register_target(t, name=self._name)
@@ -93,10 +95,12 @@ class ykcom:  # noqa: N801
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             if self._name:
                 kwargs.update({self._name: self._mock_data.mock})
-            elif self._is_likely_method(func):
-                args = (args[0], self._mock_data.mock, *args[1:])  # type: ignore[assignment]
-            else:
-                args = (self._mock_data.mock, *args)  # type: ignore[assignment]
+            elif not mock_reused:
+                # Keep using the same positional mock
+                if self._is_likely_method(func):
+                    args = (args[0], self._mock_data.mock, *args[1:])  # type: ignore[assignment]
+                else:
+                    args = (self._mock_data.mock, *args)  # type: ignore[assignment]
 
             try:
                 self._start()
