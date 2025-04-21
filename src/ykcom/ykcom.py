@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from functools import partial, wraps
@@ -54,7 +55,21 @@ class ykcom:  # noqa: N801
             else:
                 func._ykcom[self._name] = self._mock_data  # type: ignore[attr-defined]
 
-            new_func = partial(func, **{self._name: self._mock_data.mock})
+            new_params = []
+            new_with_default = None
+            for name, param in inspect.signature(func).parameters.items():
+                if name == self._name:
+                    new_with_default = param.replace(default=self._mock_data.mock)
+                else:
+                    new_params.append(param)
+
+            if new_with_default is None:
+                raise ValueError(f"'{self._name}' not found in the parameter list")
+
+            new_params.append(new_with_default)
+
+            func.__signature__ = inspect.signature(func).replace(parameters=new_params)  # type: ignore[attr-defined]
+            new_func = func  # TODO remove
         else:
             new_func = partial(func, self._mock_data.mock)
 
@@ -62,6 +77,9 @@ class ykcom:  # noqa: N801
 
         @wraps(new_func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            if self._name:
+                kwargs.update({self._name: self._mock_data.mock})
+
             try:
                 self._start()
                 return new_func(*args, **kwargs)

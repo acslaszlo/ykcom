@@ -88,16 +88,15 @@ def test_standalone_function_named_parametrized_before_decorator(custom_name: Ma
     assert custom_name.mock_calls == [call.os.environ.__getitem__(key)]
 
 
-# FIXME
-# @ykcom("tests.packages_for_testing.p1", "os", name="custom_name")
-# @pytest.mark.parametrize("param", [1, 2])
-# def test_standalone_function_named_parametrized_after_decorator(custom_name: MagicMock, param: int) -> None:
-#     key = f"none-{param}"
-#
-#     p1.mock_me(key)
-#
-#     assert custom_name.os.mock_calls == [call.environ.__getitem__(key)]
-#     assert custom_name.mock_calls == [call.os.environ.__getitem__(key)]
+@ykcom("tests.packages_for_testing.p1", "os", name="custom_name")
+@pytest.mark.parametrize("param", [1, 2])
+def test_standalone_function_named_parametrized_after_decorator(custom_name: MagicMock, param: int) -> None:
+    key = f"none-{param}"
+
+    p1.mock_me(key)
+
+    assert custom_name.os.mock_calls == [call.environ.__getitem__(key)]
+    assert custom_name.mock_calls == [call.os.environ.__getitem__(key)]
 
 
 # TODO stacked decorators
