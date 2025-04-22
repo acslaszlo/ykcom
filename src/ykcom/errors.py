@@ -8,3 +8,7 @@ class NamedParameterNotFoundError(YckomError):
 
 class TargetAlreadyBoundError(YckomError):
     """Indicates that the same target has been assigned to multiple names."""
+
+
+class NameCollisionError(YckomError):
+    """The same name has been provided for multiple targets."""

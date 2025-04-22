@@ -9,7 +9,7 @@ from functools import wraps
 from typing import TYPE_CHECKING, ParamSpec, TypeVar
 from unittest.mock import MagicMock, patch
 
-from .errors import NamedParameterNotFoundError, TargetAlreadyBoundError
+from .errors import NameCollisionError, NamedParameterNotFoundError, TargetAlreadyBoundError
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -84,6 +84,16 @@ class ykcom:  # noqa: N801
             mock_reused = False
 
         for t in self._target:
+            mock_name = t.split(".")[-1]
+            if mock_name in self._mock_data.specs and t not in data.targets:
+                error_msg = (
+                    f"'{mock_name}' is already used for '{self._name}'"
+                    if self._name
+                    else f"'{mock_name}' is already used for positional instance"
+                )
+                raise NameCollisionError(error_msg)
+            self._mock_data.specs.add(mock_name)
+
             data.register_target(t, name=self._name)
 
         if self._name:
@@ -134,7 +144,6 @@ class ykcom:  # noqa: N801
     def _start(self) -> None:
         for t in self._target:
             name = t.split(".")[-1]
-            # TODO check for duplicated names
 
             self._patchers.append(patch(t))
             self._mock_data.specs.add(name)

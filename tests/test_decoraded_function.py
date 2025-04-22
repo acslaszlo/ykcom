@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, call
 import pytest
 
 from src.ykcom import ykcom
-from src.ykcom.errors import NamedParameterNotFoundError, TargetAlreadyBoundError
+from src.ykcom.errors import NameCollisionError, NamedParameterNotFoundError, TargetAlreadyBoundError
 from tests.packages_for_testing import p1, p2
 
 
@@ -185,9 +185,24 @@ def test_same_targe_for_positional_and_named_instance_error() -> None:
     assert str(err.value) == "Target 'tests.packages_for_testing.p1.os' is already bound"
 
 
-# TODO
-# @ykcom("tests.packages_for_testing.p1", "os", "sys", name="custom_name")
-# @ykcom("tests.packages_for_testing.p2", "sys", name="custom_name")  <- should be error
+def test_name_collision_on_different_packages_with_named_instance_error() -> None:
+    with pytest.raises(NameCollisionError) as err:
+
+        @ykcom("tests.packages_for_testing.p1", "os", "sys", name="custom_name")
+        @ykcom("tests.packages_for_testing.p2", "sys", name="custom_name")
+        def test_inner(custom_name: MagicMock) -> None: ...
+
+    assert str(err.value) == "'sys' is already used for 'custom_name'"
+
+
+def test_name_collision_on_different_packages_with_positional_instance_error() -> None:
+    with pytest.raises(NameCollisionError) as err:
+
+        @ykcom("tests.packages_for_testing.p1", "os", "sys")
+        @ykcom("tests.packages_for_testing.p2", "sys")
+        def test_inner(name: MagicMock) -> None: ...
+
+    assert str(err.value) == "'sys' is already used for positional instance"
 
 
 # TODO

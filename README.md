@@ -105,6 +105,12 @@ TODO Add use cases and examples
   @ykcom("base_path", "os", name="name_2")
   def test_bad(name_1: MagicMock, name_2: MagicMock) -> None: ...
   ```
+* `NameCollisionError`: Registering the same mock name with different targets under the same Ykcom instance.
+  ```python
+  @ykcom("base_path_1", "os")
+  @ykcom("base_path_2", "os")
+  def test_bad(mocked: MagicMock) -> None: ...
+  ```
 
 ## TODOs/Ideas
 
